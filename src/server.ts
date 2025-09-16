@@ -6,13 +6,14 @@ import { connectDB } from "./db";
 import bodyParser from "body-parser";
 import { GlobalError } from "./middleware/global-error";
 import userRoter from "./routes/auth.router";
+import assignmentRouter from "./routes/assignment.router";
 
 // Configs
 dotenv.config();
 const app = express();
 const httpServer = createServer(app);
 const corsOptions: CorsOptions = {
-  origin: "*",
+  origin: "http://localhost:5173",
   methods: ["GET", "POST", "PUT", "DELETE"],
   credentials: true,
 };
@@ -27,6 +28,7 @@ app.use("/check", (req: Request, res: Response) => {
 // APIs
 
 app.use("/api/auth", userRoter);
+app.use("/api/assignment", assignmentRouter);
 
 // Global Error handler
 app.use(GlobalError);
