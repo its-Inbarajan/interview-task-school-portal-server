@@ -66,7 +66,9 @@ export async function getAssignmentByFilter(
     const findFilteredDoc = await ASSIGNMENT.find(filtreQuery)
       .skip((pageNumber - 1) * pageLimit)
       .limit(pageLimit);
+
     const count = await ASSIGNMENT.countDocuments(filtreQuery);
+
     const response: IApiResponse<IAssignment[]> = {
       message: "Fetched successfully.",
       success: true,
@@ -75,9 +77,34 @@ export async function getAssignmentByFilter(
       pagination: {
         limit: pageLimit,
         page: pageNumber,
-        total_count: Math.ceil(count / pageLimit),
+        total_count: count,
       },
     };
+    res.status(response.status).json(response);
+  } catch (error: unknown) {
+    next(error);
+  }
+}
+
+export async function getAssignmentById(
+  req: Request,
+  res: Response,
+  next: NextFunction
+) {
+  try {
+    const { id } = req.params;
+
+    const findById = await ASSIGNMENT.findById(id);
+    const populate = await findById?.populate("createdBy", "-password -__v");
+    if (!findById) return next(new CustomError("Assignment not found!", 404));
+
+    const response: IApiResponse<IAssignment> = {
+      message: "Fetched successfully",
+      status: 200,
+      success: true,
+      response: populate,
+    };
+
     res.status(response.status).json(response);
   } catch (error: unknown) {
     next(error);

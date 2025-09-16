@@ -7,6 +7,7 @@ import bodyParser from "body-parser";
 import { GlobalError } from "./middleware/global-error";
 import userRoter from "./routes/auth.router";
 import assignmentRouter from "./routes/assignment.router";
+import submissionRouter from "./routes/submission.router";
 
 // Configs
 dotenv.config();
@@ -29,10 +30,12 @@ app.use("/check", (req: Request, res: Response) => {
 
 app.use("/api/auth", userRoter);
 app.use("/api/assignment", assignmentRouter);
+app.use("/api/submission", submissionRouter);
 
 // Global Error handler
 app.use(GlobalError);
 
+// DB Connection
 connectDB().then(() => {
   httpServer.listen(process.env.PORT!, () => {
     console.log(`server running on http://localhost:${process.env.PORT!}`);

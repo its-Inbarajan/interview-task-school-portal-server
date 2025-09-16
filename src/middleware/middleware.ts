@@ -11,12 +11,12 @@ interface TokenPayLoad extends JwtPayload {
 }
 
 interface CustomRequest extends Request {
-  user?: Pick<IUser, "role">;
+  user?: Pick<IUser, "role" | "_id">;
 }
 
 interface AuthRequest extends Request {
   user?: {
-    id: Types.ObjectId;
+    _id: Types.ObjectId;
     role: string;
   };
 }
@@ -36,7 +36,7 @@ export const middleware = (
     if (!decode?.role) {
       return next(new CustomError("Token is Missing!", 404));
     }
-    req.user = { role: decode.role };
+    req.user = { role: decode.role, _id: decode.userId };
     next();
   } catch (error: unknown) {
     next(error);
@@ -65,9 +65,10 @@ export const authorizeTeacher = (checkOwnerShip: boolean = false) => {
         // ensure teacher can only CRUD their own assignments
         if (
           !(assignment.createdBy as Types.ObjectId).equals(
-            new Types.ObjectId(req.user.id)
+            new Types.ObjectId(req.user._id)
           )
         ) {
+          console.log(req.user._id);
           return next(new CustomError("Not allowed: Not your assignment", 403));
         }
       }
