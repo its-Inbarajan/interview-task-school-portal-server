@@ -1,5 +1,6 @@
 import { Document, model, Schema, Types } from "mongoose";
 import { IUser } from "./auth.model";
+import { ISubmission } from "./submission.model";
 
 export interface IAssignment extends Document {
   title: string;
@@ -7,6 +8,7 @@ export interface IAssignment extends Document {
   dueDate: Date;
   status: "draft" | "pubished" | "completed";
   createdBy: Types.ObjectId | IUser;
+  answers: Schema.Types.ObjectId[];
 }
 
 const AssignMentSchema = new Schema<IAssignment>(
@@ -33,6 +35,13 @@ const AssignMentSchema = new Schema<IAssignment>(
       type: Schema.Types.ObjectId,
       required: true,
     },
+    answers: [
+      {
+        ref: "submissions",
+        type: Schema.Types.ObjectId,
+        default: [],
+      },
+    ],
   },
   { timestamps: true }
 );

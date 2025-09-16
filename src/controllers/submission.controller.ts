@@ -19,7 +19,7 @@ export async function createSubmission(
       reviewed,
     }: ISubmission = req.body;
 
-    if (!assignmentId || !studentId || !answer || !submittedAt) {
+    if (!assignmentId || !studentId || !answer) {
       return next(new CustomError("Every field must not be empty.", 400));
     }
 
@@ -27,6 +27,7 @@ export async function createSubmission(
       await ASSIGNMENT.findById(assignmentId),
       await USERSCHEMA.findById(studentId),
     ]);
+
     if (!assignment) {
       return next(new CustomError("Assignment is found!", 404));
     }
@@ -35,14 +36,26 @@ export async function createSubmission(
       return next(new CustomError("Student is found!", 404));
     }
 
+    const now = new Date();
+    if (assignment.dueDate && now > assignment.dueDate) {
+      return next(
+        new CustomError("Submission closed! Due date has passed.", 400)
+      );
+    }
+
     const result = await SUBMISSIONSCHEMA.create({
       assignmentId,
       studentId,
       answer,
-      submittedAt,
-      reviewed,
+      submittedAt: now,
+      reviewed: "pending",
     });
 
+    await ASSIGNMENT.findByIdAndUpdate(
+      assignmentId,
+      { $push: { answers: result._id } },
+      { new: true }
+    );
     const populated = await result.populate(
       "assignmentId studentId",
       "-password -__v"

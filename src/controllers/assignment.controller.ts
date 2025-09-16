@@ -65,7 +65,15 @@ export async function getAssignmentByFilter(
 
     const findFilteredDoc = await ASSIGNMENT.find(filtreQuery)
       .skip((pageNumber - 1) * pageLimit)
-      .limit(pageLimit);
+      .limit(pageLimit)
+      .populate({
+        path: "answers",
+        select: "-__v -assignmentId",
+        populate: {
+          path: "studentId",
+          select: "name email role",
+        },
+      });
 
     const count = await ASSIGNMENT.countDocuments(filtreQuery);
 
@@ -95,7 +103,17 @@ export async function getAssignmentById(
     const { id } = req.params;
 
     const findById = await ASSIGNMENT.findById(id);
-    const populate = await findById?.populate("createdBy", "-password -__v");
+    const populate = await findById?.populate([
+      { path: "createdBy", select: "name email role" },
+      {
+        path: "answers",
+        select: "-__v -assignmentId",
+        populate: {
+          path: "studentId",
+          select: "name email role",
+        },
+      },
+    ]);
     if (!findById) return next(new CustomError("Assignment not found!", 404));
 
     const response: IApiResponse<IAssignment> = {
