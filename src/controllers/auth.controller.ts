@@ -12,7 +12,6 @@ export async function login(
 ) {
   try {
     const { email, password }: IUser = req.body;
-
     if (!email || !password) {
       return next(new CustomError("Every field is required!", 400));
     }
@@ -23,18 +22,20 @@ export async function login(
     }
 
     const token = generateToken(findUser?._id as string, findUser?.role);
-
-    const camparePass = await compare(password, findUser?.password!);
+    const camparePass = await compare(password, findUser.password);
     if (!camparePass) {
       return next(new CustomError("Password is not match.", 400, false));
     }
-    const result: IApiResponse<{ token: string; role: "teacher" | "student" }> =
-      {
-        message: `Welcome ${findUser.name || ""}`,
-        status: 201,
-        success: true,
-        response: { token: token, role: findUser.role },
-      };
+    const result: IApiResponse<{
+      token: string;
+      role: "teacher" | "student";
+      userId: unknown;
+    }> = {
+      message: `Welcome ${findUser.name || ""}`,
+      status: 201,
+      success: true,
+      response: { token: token, role: findUser.role, userId: findUser._id },
+    };
     res.status(result.status).json(result);
   } catch (error: unknown) {
     next(error);
@@ -43,7 +44,7 @@ export async function login(
 
 export async function signup(req: Request, res: Response, next: NextFunction) {
   try {
-    const { name, role, email, password, _id }: IUser = req.body;
+    const { name, role, email, password }: IUser = req.body;
 
     if (!name || !role || !email || !password) {
       return next(new CustomError("Every field is required!", 400));

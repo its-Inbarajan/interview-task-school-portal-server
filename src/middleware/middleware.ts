@@ -2,6 +2,8 @@ import { NextFunction, Request, Response } from "express";
 import { CustomError } from "./global-error";
 import { JwtPayload, verify } from "jsonwebtoken";
 import { IUser } from "../models/auth.model";
+import { ASSIGNMENT } from "../models/assignment.model";
+import { Types } from "mongoose";
 
 interface TokenPayLoad extends JwtPayload {
   userId?: string;
@@ -10,6 +12,13 @@ interface TokenPayLoad extends JwtPayload {
 
 interface CustomRequest extends Request {
   user?: Pick<IUser, "role">;
+}
+
+interface AuthRequest extends Request {
+  user?: {
+    id: Types.ObjectId;
+    role: string;
+  };
 }
 
 export const middleware = (
@@ -32,4 +41,39 @@ export const middleware = (
   } catch (error: unknown) {
     next(error);
   }
+};
+
+export const authorizeTeacher = (checkOwnerShip: boolean = false) => {
+  return async (req: AuthRequest, res: Response, next: NextFunction) => {
+    try {
+      if (!req.user) {
+        return next(new CustomError("Unauthorized", 401));
+      }
+
+      if (req.user.role !== "teacher") {
+        return next(new CustomError("Forbidden: Teacher only", 403));
+      }
+
+      if (checkOwnerShip) {
+        const assignmentId = req.params.id;
+        const assignment = await ASSIGNMENT.findById(assignmentId);
+
+        if (!assignment) {
+          return next(new CustomError("Assignment not found", 404));
+        }
+
+        // ensure teacher can only CRUD their own assignments
+        if (
+          !(assignment.createdBy as Types.ObjectId).equals(
+            new Types.ObjectId(req.user.id)
+          )
+        ) {
+          return next(new CustomError("Not allowed: Not your assignment", 403));
+        }
+      }
+      next();
+    } catch (error: unknown) {
+      next(error);
+    }
+  };
 };
