@@ -3,6 +3,7 @@ import {
   createAssignment,
   deleteAssignment,
   getAssignmentByFilter,
+  getAssignmentById,
   updateAssignment,
   updateStatus,
 } from "../controllers/assignment.controller";
@@ -18,6 +19,7 @@ assignmentRouter.post(
 );
 
 assignmentRouter.get("/getAssignment", middleware, getAssignmentByFilter);
+assignmentRouter.get("/getAssignmentById/:id", middleware, getAssignmentById);
 
 assignmentRouter.put(
   "/updateAssignment/:id",
