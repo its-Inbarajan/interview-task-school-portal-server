@@ -6,36 +6,63 @@ import { compare, hash } from "bcrypt";
 import { generateToken } from "../service/helper";
 
 export async function login(
-  req: Request<{}, {}, IUser>,
+  req: Request<{}, {}, IUser & { name?: string; role?: "teacher" | "student" }>,
   res: Response,
   next: NextFunction
 ) {
   try {
-    const { email, password }: IUser = req.body;
+    const { email, password, name, role } = req.body;
+
     if (!email || !password) {
-      return next(new CustomError("Every field is required!", 400));
+      return next(new CustomError("Email and password are required!", 400));
     }
 
-    const findUser = await USERSCHEMA.findOne({ email: email });
+    let findUser = await USERSCHEMA.findOne({ email });
+
     if (!findUser) {
-      return next(new CustomError("User not found!", 400));
+      if (!name || !role) {
+        const result: IApiResponse<{ requiresSignup: true }> = {
+          message: "User not found. Please provide name and role to register.",
+          status: 404,
+          success: false,
+          response: { requiresSignup: true },
+        };
+        return res.status(result.status).json(result);
+      }
+
+      const hashedPass = await hash(password, 10);
+      findUser = await USERSCHEMA.create({
+        email,
+        password: hashedPass,
+        name,
+        role,
+      });
+    } else {
+      const comparePass = await compare(password, findUser.password);
+      if (!comparePass) {
+        return next(new CustomError("Password does not match.", 400));
+      }
     }
 
-    const token = generateToken(findUser?._id as string, findUser?.role);
-    const camparePass = await compare(password, findUser.password);
-    if (!camparePass) {
-      return next(new CustomError("Password is not match.", 400, false));
-    }
+    const token = generateToken(findUser._id as string, findUser.role);
+
     const result: IApiResponse<{
       token: string;
       role: "teacher" | "student";
-      userId: unknown;
+      userId: string;
+      requiresSignup?: false;
     }> = {
       message: `Welcome ${findUser.name || ""}`,
-      status: 201,
+      status: findUser ? 200 : 201,
       success: true,
-      response: { token: token, role: findUser.role, userId: findUser._id },
+      response: {
+        token,
+        role: findUser.role,
+        userId: findUser._id as string,
+        requiresSignup: false,
+      },
     };
+
     res.status(result.status).json(result);
   } catch (error: unknown) {
     next(error);
